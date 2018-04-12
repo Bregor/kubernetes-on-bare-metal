@@ -1,0 +1,272 @@
+#+TITLE: Kubernetes and Weave.net on bare metal
+#+SUBTITLE: Evil Martians
+#+OPTIONS: toc:nil num:nil ':t \n:t
+#+AUTHOR: Maxim Filatov
+#+EMAIL: mf@evl.ms
+#+REVEAL_ROOT: http://cdn.jsdelivr.net/reveal.js/3.0.0/
+#+REVEAL_THEME: night
+#+REVEAL_TRANS: page
+#+REVEAL_PLUGINS: (highlight zoom)
+#+REVEAL_TITLE_SLIDE_BACKGROUND: ./logo.png
+#+REVEAL_SLIDE_NUMBER: nil
+#+REVEAL_TITLE_SLIDE: <h2>%t</h2>
+
+*  
+    :PROPERTIES:
+    :reveal_background: ./about.png
+    :END:
+* Public solutions
+- [[https://github.com/kubernetes-incubator/kubespray][kubespray]]
+- [[https://github.com/kubernetes/kubernetes/tree/master/cmd/kubeadm][kubeadm]]
+- [[https://github.com/kubernetes/kubernetes/tree/master/cluster][kube-up]]
+- [[https://github.com/evilmartians/chef-kubernetes][chef-kubernetes]]
+* Node view
+  [[./nodes.png]]
+* Components view
+  [[./components.png]]
+* What's this all about
+- SSL
+- Etcd
+- Master node
+- Worker node
+- CNI
+
+* SSL
+** SSL: Bundles
+   1 to 4 bundles per cluster
+
+** SSL: single bundle
+   - Single CA
+   - Keypairs:
+     - apiserver
+     - kubelets
+     - etcd clients
+     - etcd peers
+** SSL: two bundles
+  - Kubernetes
+    - CA
+    - apiserver keypair
+    - kubelets keypair
+  - Etcd
+    - CA
+      - peers keypair
+      - clients keypair
+** SSL: full paranoia
+   - apiserver
+     - CA
+     - keypairs
+   - kubelets
+     - CA
+     - keypairs
+   - etcd peers
+     - CA
+     - keypairs
+   - etcd clients
+     - CA
+     - keypairs
+** SSL: keypairs
+   - keypair per host
+   - keypair per component
+** SSL: CA
+   - Validity!
+* Etcd
+  [[https://2eof2j3oc7is20vt9q3g7tlo5xe-wpengine.netdna-ssl.com/wp-content/uploads/2015/01/Screen-Shot-2015-01-28-at-1.46.38-PM-370x219.png]]
+  Distributed reliable key-value store
+** Etcd: Intercommunications
+   [[./etcd-schema.png]]
+** Etcd: Apiserver communications
+   [[./etcd-apiserver.png]]
+
+** Etcd: initial args
+#+BEGIN_SRC shell-script
+  --initial-advertise-peer-urls=https://etcd0:2380 \
+  --initial-cluster-state=new \
+  --initial-cluster-token=RfDz6BPYvQWSshe8J0cEhUoAGbnm1LfgS0A77EsjCa \
+  --initial-cluster=etcd0=https://etcd0:2380,etcd1=https://etcd1:2380,etcd2=https://etcd2:2380 \
+#+END_SRC
+** Etcd: add node
+- on any old member:
+  #+BEGIN_SRC shell-script
+  $ etcdctl member add name peerURL
+  #+END_SRC
+- on a new member start =etcd= changing following opts:
+  #+BEGIN_SRC shell-script
+  --initial-cluster-state=existing
+  --initial-cluster=all-old-members,https://new-member:2380
+  #+END_SRC
+** Etcd: remove node
+   - on any live member:
+     #+BEGIN_SRC shell-script
+     $ etcdctl member list
+     $ etcdctl member remove ID
+     #+END_SRC
+** Etcd: fault tolerance
+*** Tolerance table
+ | CLUSTER SIZE | 	MAJORITY	 | FAILURE TOLERANCE |
+ |--------------+--------------------------+-------------------|
+ |            1 | 	1                | 	0         |
+ |            2 | 	2                | 	0         |
+ |            3 | 	2                | 	1         |
+ |            4 | 	3                | 	1         |
+ |            5 | 	3                | 	2         |
+ |--------------+--------------------------+-------------------|
+*** =Majority = floor(Size/2) + 1=
+*** =Tolerance = Size - Majority=
+*** =Tolerance = Size - floor(Size/2) - 1=
+** Etcd: proxy mode
+#+BEGIN_SRC shell-script
+$ etcd grpc-proxy start --endpoints=...
+#+END_SRC
+* Master node
+[[./master_node.png]]
+** Master node: multimaster
+   [[./multimaster.png]]
+   Problems:
+   - load balancing
+   - leases
+** Master node: custom schedulers
+   [[./custom-schedulers.png]]
+   #+BEGIN_SRC yaml
+   spec:
+     template:
+       spec:
+         schedulerName: default-scheduler
+   #+END_SRC
+** Master node: addon manager
+   - [[https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/addon-manager][simple shell script]]
+   - =/etc/kubernetes/addons=
+   - labels
+     #+BEGIN_SRC yaml
+     metadata:
+       labels:
+         addonmanager.kubernetes.io/mode: Reconcile
+	 kubernetes.io/cluster-service: "true"
+     #+END_SRC
+* Worker node
+  [[./worker.png]]
+* CNI
+  [[./cni_logo.png]]
+  Container Network Interface
+  - [[https://github.com/containernetworking/cni/blob/master/SPEC.md][Specification]]
+  - [[https://github.com/containernetworking/cni/tree/master/cnitool][Tool]]
+  - [[https://github.com/containernetworking/plugins][Plugins]]
+** CNI: versions
+   - Specification: 0.3.1
+   - Tool: 0.6.0
+   - Plugins: 0.7.0
+   [[https://vignette.wikia.nocookie.net/whatever-you-want/images/d/d1/3d75c86f47.jpg]]
+** CNI: portmap
+   - forward traffic from one or more ports on the host to the container
+   - chained
+** CNI: configuration
+   - =/etc/cni/net.d/10-weave.conflist=
+     #+BEGIN_SRC json
+     {
+         "cniVersion": "0.3.1",
+         "name": "weave",
+         "plugins": [
+     	{
+     	    "name": "weave",
+     	    "type": "weave-net",
+     	    "hairpinMode": true
+     	},
+     	{
+     	    "type": "portmap",
+     	    "capabilities": {
+     		"portMappings": true
+     	    },
+     	    "snat": true
+     	}
+         ]
+     }
+     #+END_SRC
+* Weave
+  - [[https://www.weave.works/docs/net/latest/concepts/fastdp-how-it-works/][Fast Datapath]]
+  - [[https://www.weave.works/docs/net/latest/concepts/encryption/][Encryption]]
+  - [[http://kubernetes.io/docs/user-guide/networkpolicies/][NPC]]
+  - [[https://www.weave.works/docs/net/latest/tasks/manage/multi-cloud-multi-hop/][Multi-hop routing]]
+  - [[https://www.weave.works/docs/net/latest/kubernetes/][CNI plugin]]
+  - Single +click+ =kubectl= exec Kubernetes integration
+** Weave: Node view
+   [[./weave-node.png]]
+** Weave: Topology
+   [[./weave-topology.png]]
+** Weave: FDP
+   [[https://www.weave.works/docs/net/latest/concepts/weave-net-fdp1-1024x454.png]]
+** Weave: Multi-hop routing
+   [[./weave-multihop.png]]
+** Weave: installation
+   #+BEGIN_SRC shell-script
+   $ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=\
+   $(kubectl version | base64 | tr -d '\n')"
+   #+END_SRC
+** Weave: be aware
+   Always remove =/etc/cni/net.d/10-weave.conf=
+* Tips and tricks
+   [[http://vodvore.net/prikols/prikol01727.jpg]]
+** Networks
+   - Host network
+   - Pod network (CNI)
+   - Service network (Netfilter)
+   Don't forget
+   #+BEGIN_SRC shell-script
+   ip route add service_network dev internal_interface
+   #+END_SRC
+
+** Encryption config
+   #+BEGIN_SRC yaml
+   kind: EncryptionConfig
+   apiVersion: v1
+   resources:
+   - resources:
+     - secrets
+     - configmaps
+     providers:
+     - aescbc:
+         keys:
+           - name: key1
+             secret: RnVjayB0aGlzIHNoaXQhCg==
+     - identity: {}
+   #+END_SRC
+*** Encryption setup
+    #+BEGIN_SRC shell-script
+    # kube-apiserver --experimental-encryption-provider-config=/etc/kubernetes/encryption-config.yaml ...
+    #+END_SRC
+*** Actually encrypting the data
+    #+BEGIN_SRC shell-script
+    $ kubectl get secrets --all-namespaces -o json | kubectl replace -f -
+    #+END_SRC
+** Endpoint reconciler
+   - Good
+     #+BEGIN_SRC shell-script
+     # kube-apiserver --endpoint-reconciler-type=lease ...
+     #+END_SRC
+   - Bad
+     #+BEGIN_SRC shell-script
+     # kube-apiserver --endpoint-reconciler-type=master-count ...
+     #+END_SRC
+
+** Authentication
+*** Authentication: WARNING
+    There is no authentication inside kubernetes!
+    AT ALL!
+*** Authentication: strategies
+    - [[https://kubernetes.io/docs/admin/authentication/#x509-client-certs][X509 Client Certs]]
+    - [[https://kubernetes.io/docs/admin/authentication/#static-token-file][Static Token File]]
+    - [[https://kubernetes.io/docs/admin/authentication/#static-password-file][Static Password File]]
+    - [[https://kubernetes.io/docs/admin/authentication/#openid-connect-tokens][OpenID Connect Tokens]]
+    - [[https://kubernetes.io/docs/admin/authentication/#webhook-token-authentication][Webhook Token Authentication]]
+    - [[https://github.com/coreos/dex][DEX]]
+*** Bootstrap tokens
+    - Apiserver:
+      #+BEGIN_SRC shell-script
+      --enable-bootstrap-token-auth
+      #+END_SRC
+    - Kubelet:
+      #+BEGIN_SRC shell-script
+      --bootstrap-kubeconfig=/etc/kubernetes/kubeconfig-bootstrap.yaml
+      #+END_SRC
+** Upgrade
+   - Patch versions: smooth and simple
+   - Minor versions: all pods restart
+* Questions?

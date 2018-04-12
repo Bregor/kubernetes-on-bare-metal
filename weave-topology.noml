@@ -1,0 +1,11 @@
+#direction: right
+[weave-net-cz8z4]<->[weave-net-hjc89]
+[weave-net-cz8z4]<->[weave-net-qrl44]
+[weave-net-cz8z4]<->[weave-net-wgfxm]
+[weave-net-cz8z4]<->[weave-net-zw9jm]
+[weave-net-hjc89]<->[weave-net-qrl44]
+[weave-net-hjc89]<->[weave-net-wgfxm]
+[weave-net-hjc89]<->[weave-net-zw9jm]
+[weave-net-qrl44]<->[weave-net-wgfxm]
+[weave-net-qrl44]<->[weave-net-zw9jm]
+[weave-net-wgfxm]<->[weave-net-zw9jm]

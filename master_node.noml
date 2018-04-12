@@ -1,0 +1,6 @@
+[Master Node|
+[Scheduler]->[Apiserver]
+[Controller Manager]->[Apiserver]
+[Addon Manager]->[Kubectl]
+[Kubectl]->[Apiserver]
+]

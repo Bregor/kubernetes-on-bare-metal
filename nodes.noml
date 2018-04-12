@@ -1,0 +1,15 @@
+[Worker Node|
+[Kubelet]->[CNI]
+[Kubelet]->[Container Runtime]
+[Kube Proxy]
+]
+[Master Node|
+[Apiserver]<-[Scheduler]
+[Apiserver]<-[Controller Manager]
+]
+[Database Node|[Etcd]]
+[Client Node|[Kubectl]]
+
+[Master Node]->[Database Node]
+[Client Node]->[Master Node]
+[Worker Node]<->[Master Node]

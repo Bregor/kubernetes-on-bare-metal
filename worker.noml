@@ -1,0 +1,4 @@
+[Worker node|[Kubelet]->[Haproxy]
+[Kubelet]->[CNI]
+[Kubelet]->[Container Runtime]
+[Kube Proxy]->[Haproxy]]

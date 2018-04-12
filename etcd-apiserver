@@ -1,0 +1,7 @@
+[<database>Etcd0|client port: 2380]
+[<database>Etcd1|client port: 2380]
+[<database>Etcd2|client port: 2380]
+#direction: right
+[Apiserver]->[Etcd0]
+[Apiserver]->[Etcd1]
+[Apiserver]->[Etcd2]

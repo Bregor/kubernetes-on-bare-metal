@@ -1,0 +1,22 @@
+[Apiserver|REST operations|frontend to the
+cluster's shared state]
+[Scheduler|availability|performance|capacity]
+[Controller Manager|control loops]
+[Kube Proxy|manage iptables|TCP/UDP streams|IP forward]
+[Kubelet|node agent|Pod runner|healthchecks|CSR]
+[<database>ETCD|Primary DB|Cluster state]
+[Container Runtime|Run containers]
+[Kubectl|API client]
+[CNI|
+Container Network Interface|
+Manage container network]
+
+[Apiserver]->[Kubelet]
+[Apiserver]->[ETCD]
+[Scheduler]->[Apiserver]
+[Kube Proxy]->[Apiserver]
+[Controller Manager]->[Apiserver]
+[Kubectl]->[Apiserver]
+[Kubelet]->[Apiserver]
+[Kubelet]->[Container Runtime]
+[Kubelet]->[CNI]

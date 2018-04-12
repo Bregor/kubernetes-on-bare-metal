@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Kubernetes and Weave.net on bare metal</title>
+<meta name="author" content="(Maxim Filatov)"/>
+<style type="text/css">
+.underline { text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="http://cdn.jsdelivr.net/reveal.js/3.0.0/css/reveal.css"/>
+
+<link rel="stylesheet" href="http://cdn.jsdelivr.net/reveal.js/3.0.0/css/theme/night.css" id="theme"/>
+
+<link rel="stylesheet" href="http://cdn.jsdelivr.net/reveal.js/3.0.0/lib/css/zenburn.css"/>
+<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+<script>
+    if( window.location.search.match( /print-pdf/gi ) ) {
+        var link = document.createElement( 'link' );
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = 'http://cdn.jsdelivr.net/reveal.js/3.0.0/css/print/pdf.css';
+        document.getElementsByTagName( 'head' )[0].appendChild( link );
+    }
+</script>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+<section id="sec-title-slide" data-background="./logo.png"><h2>Kubernetes and Weave.net on bare metal</h2>
+</section>
+
+<section>
+<section id="slide-orgad60d0c" data-background="./about.png">
+<h2 id="orgad60d0c"> </h2>
+</section>
+</section>
+<section>
+<section id="slide-orgcd8c7b7">
+<h2 id="orgcd8c7b7">Public solutions</h2>
+<ul>
+<li><a href="https://github.com/kubernetes-incubator/kubespray">kubespray</a><br /></li>
+<li><a href="https://github.com/kubernetes/kubernetes/tree/master/cmd/kubeadm">kubeadm</a><br /></li>
+<li><a href="https://github.com/kubernetes/kubernetes/tree/master/cluster">kube-up</a><br /></li>
+<li><a href="https://github.com/evilmartians/chef-kubernetes">chef-kubernetes</a><br /></li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-org91775e6">
+<h2 id="org91775e6">Node view</h2>
+
+<div class="figure">
+<p><img src="./nodes.png" alt="nodes.png" /><br />
+</p>
+</div>
+</section>
+</section>
+<section>
+<section id="slide-org3e9b8db">
+<h2 id="org3e9b8db">Components view</h2>
+
+<div class="figure">
+<p><img src="./components.png" alt="components.png" /><br />
+</p>
+</div>
+</section>
+</section>
+<section>
+<section id="slide-orge1e3ff2">
+<h2 id="orge1e3ff2">What&rsquo;s this all about</h2>
+<ul>
+<li>SSL<br /></li>
+<li>Etcd<br /></li>
+<li>Master node<br /></li>
+<li>Worker node<br /></li>
+<li>CNI<br /></li>
+
+</ul>
+
+</section>
+</section>
+<section>
+<section id="slide-orgbccd939">
+<h2 id="orgbccd939">SSL</h2>
+<div class="outline-text-2" id="text-orgbccd939">
+</div>
+</section>
+<section id="slide-orgf0ce7a4">
+<h3 id="orgf0ce7a4">SSL: Bundles</h3>
+<p>
+1 to 4 bundles per cluster<br />
+</p>
+
+</section>
+<section id="slide-orgdb54add">
+<h3 id="orgdb54add">SSL: single bundle</h3>
+<ul>
+<li>Single CA<br /></li>
+<li>Keypairs:<br />
+<ul>
+<li>apiserver<br /></li>
+<li>kubelets<br /></li>
+<li>etcd clients<br /></li>
+<li>etcd peers<br /></li>
+
+</ul></li>
+
+</ul>
+</section>
+<section id="slide-org21d785b">
+<h3 id="org21d785b">SSL: two bundles</h3>
+<ul>
+<li>Kubernetes<br />
+<ul>
+<li>CA<br /></li>
+<li>apiserver keypair<br /></li>
+<li>kubelets keypair<br /></li>
+
+</ul></li>
+<li>Etcd<br />
+<ul>
+<li>CA<br />
+<ul>
+<li>peers keypair<br /></li>
+<li>clients keypair<br /></li>
+
+</ul></li>
+
+</ul></li>
+
+</ul>
+</section>
+<section id="slide-org546bc1c">
+<h3 id="org546bc1c">SSL: full paranoia</h3>
+<ul>
+<li>apiserver<br />
+<ul>
+<li>CA<br /></li>
+<li>keypairs<br /></li>
+
+</ul></li>
+<li>kubelets<br />
+<ul>
+<li>CA<br /></li>
+<li>keypairs<br /></li>
+
+</ul></li>
+<li>etcd peers<br />
+<ul>
+<li>CA<br /></li>
+<li>keypairs<br /></li>
+
+</ul></li>
+<li>etcd clients<br />
+<ul>
+<li>CA<br /></li>
+<li>keypairs<br /></li>
+
+</ul></li>
+
+</ul>
+</section>
+<section id="slide-orga71a11a">
+<h3 id="orga71a11a">SSL: keypairs</h3>
+<ul>
+<li>keypair per host<br /></li>
+<li>keypair per component<br /></li>
+
+</ul>
+</section>
+<section id="slide-org0bc3d6b">
+<h3 id="org0bc3d6b">SSL: CA</h3>
+<ul>
+<li>Validity!<br /></li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-org128901b">
+<h2 id="org128901b">Etcd</h2>
+<p>
+<img src="https://2eof2j3oc7is20vt9q3g7tlo5xe-wpengine.netdna-ssl.com/wp-content/uploads/2015/01/Screen-Shot-2015-01-28-at-1.46.38-PM-370x219.png" alt="Screen-Shot-2015-01-28-at-1.46.38-PM-370x219.png" /><br />
+Distributed reliable key-value store<br />
+</p>
+</section>
+<section id="slide-orga092459">
+<h3 id="orga092459">Etcd: Intercommunications</h3>
+
+<div class="figure">
+<p><img src="./etcd-schema.png" alt="etcd-schema.png" /><br />
+</p>
+</div>
+</section>
+<section id="slide-org41c0fa2">
+<h3 id="org41c0fa2">Etcd: Apiserver communications</h3>
+
+<div class="figure">
+<p><img src="./etcd-apiserver.png" alt="etcd-apiserver.png" /><br />
+</p>
+</div>
+
+</section>
+<section id="slide-orga501994">
+<h3 id="orga501994">Etcd: initial args</h3>
+<div class="org-src-container">
+
+<pre><code class="" shell-script >--initial-advertise-peer-urls=https://etcd0:2380 \
+--initial-cluster-state=new \
+--initial-cluster-token=RfDz6BPYvQWSshe8J0cEhUoAGbnm1LfgS0A77EsjCa \
+--initial-cluster=etcd0=https://etcd0:2380,etcd1=https://etcd1:2380,etcd2=https://etcd2:2380 \
+</code></pre>
+</div>
+</section>
+<section id="slide-orgd060103">
+<h3 id="orgd060103">Etcd: add node</h3>
+<ul>
+<li><p>
+on any old member:<br />
+</p>
+<div class="org-src-container">
+
+<pre><code class="" shell-script >$ etcdctl member add name peerURL
+</code></pre>
+</div></li>
+<li><p>
+on a new member start <code>etcd</code> changing following opts:<br />
+</p>
+<div class="org-src-container">
+
+<pre><code class="" shell-script >--initial-cluster-state=existing
+--initial-cluster=all-old-members,https://new-member:2380
+</code></pre>
+</div></li>
+
+</ul>
+</section>
+<section id="slide-org9e48406">
+<h3 id="org9e48406">Etcd: remove node</h3>
+<ul>
+<li><p>
+on any live member:<br />
+</p>
+<div class="org-src-container">
+
+<pre><code class="" shell-script >$ etcdctl member list
+$ etcdctl member remove ID
+</code></pre>
+</div></li>
+
+</ul>
+</section>
+<section id="slide-orgea288d7">
+<h3 id="orgea288d7">Etcd: fault tolerance</h3>
+<div class="outline-text-3" id="text-orgea288d7">
+</div>
+</section>
+<section id="slide-orga1bfe7f">
+<h4 id="orga1bfe7f">Tolerance table</h4>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-right">CLUSTER SIZE</th>
+<th scope="col" class="org-right">MAJORITY</th>
+<th scope="col" class="org-right">FAILURE TOLERANCE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-right">1</td>
+<td class="org-right">1</td>
+<td class="org-right">0</td>
+</tr>
+
+<tr>
+<td class="org-right">2</td>
+<td class="org-right">2</td>
+<td class="org-right">0</td>
+</tr>
+
+<tr>
+<td class="org-right">3</td>
+<td class="org-right">2</td>
+<td class="org-right">1</td>
+</tr>
+
+<tr>
+<td class="org-right">4</td>
+<td class="org-right">3</td>
+<td class="org-right">1</td>
+</tr>
+
+<tr>
+<td class="org-right">5</td>
+<td class="org-right">3</td>
+<td class="org-right">2</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="slide-org4d3b30c">
+<h4 id="org4d3b30c"><code>Majority = floor(Size/2) + 1</code></h4>
+</section>
+<section id="slide-org9dd7c8e">
+<h4 id="org9dd7c8e"><code>Tolerance = Size - Majority</code></h4>
+</section>
+<section id="slide-orgfbe1f7d">
+<h4 id="orgfbe1f7d"><code>Tolerance = Size - floor(Size/2) - 1</code></h4>
+</section>
+<section id="slide-orgda92930">
+<h3 id="orgda92930">Etcd: proxy mode</h3>
+<div class="org-src-container">
+
+<pre><code class="" shell-script >$ etcd grpc-proxy start --endpoints=...
+</code></pre>
+</div>
+</section>
+</section>
+<section>
+<section id="slide-org1f3b458">
+<h2 id="org1f3b458">Master node</h2>
+
+<div class="figure">
+<p><img src="./master_node.png" alt="master_node.png" /><br />
+</p>
+</div>
+</section>
+<section id="slide-org805449c">
+<h3 id="org805449c">Master node: multimaster</h3>
+<p>
+<img src="./multimaster.png" alt="multimaster.png" /><br />
+Problems:<br />
+</p>
+<ul>
+<li>load balancing<br /></li>
+<li>leases<br /></li>
+
+</ul>
+</section>
+<section id="slide-orgabb6c4a">
+<h3 id="orgabb6c4a">Master node: custom schedulers</h3>
+
+<div class="figure">
+<p><img src="./custom-schedulers.png" alt="custom-schedulers.png" /><br />
+</p>
+</div>
+<div class="org-src-container">
+
+<pre><code class="" yaml >spec:
+  template:
+    spec:
+      schedulerName: default-scheduler
+</code></pre>
+</div>
+</section>
+<section id="slide-org6cc6541">
+<h3 id="org6cc6541">Master node: addon manager</h3>
+<ul>
+<li><a href="https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/addon-manager">simple shell script</a><br /></li>
+<li><code>/etc/kubernetes/addons</code><br /></li>
+<li><p>
+labels<br />
+</p>
+<div class="org-src-container">
+
+<pre><code class="" yaml >metadata:
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+    kubernetes.io/cluster-service: "true"
+</code></pre>
+</div></li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-orga3c215a">
+<h2 id="orga3c215a">Worker node</h2>
+
+<div class="figure">
+<p><img src="./worker.png" alt="worker.png" /><br />
+</p>
+</div>
+</section>
+</section>
+<section>
+<section id="slide-orge1d7892">
+<h2 id="orge1d7892">CNI</h2>
+<p>
+<img src="./cni_logo.png" alt="cni_logo.png" /><br />
+Container Network Interface<br />
+</p>
+<ul>
+<li><a href="https://github.com/containernetworking/cni/blob/master/SPEC.md">Specification</a><br /></li>
+<li><a href="https://github.com/containernetworking/cni/tree/master/cnitool">Tool</a><br /></li>
+<li><a href="https://github.com/containernetworking/plugins">Plugins</a><br /></li>
+
+</ul>
+</section>
+<section id="slide-org8e0022e">
+<h3 id="org8e0022e">CNI: versions</h3>
+<ul>
+<li>Specification: 0.3.1<br /></li>
+<li>Tool: 0.6.0<br /></li>
+<li>Plugins: 0.7.0<br /></li>
+
+</ul>
+
+<div class="figure">
+<p><img src="https://vignette.wikia.nocookie.net/whatever-you-want/images/d/d1/3d75c86f47.jpg" alt="3d75c86f47.jpg" /><br />
+</p>
+</div>
+</section>
+<section id="slide-org1746fe7">
+<h3 id="org1746fe7">CNI: portmap</h3>
+<ul>
+<li>forward traffic from one or more ports on the host to the container<br /></li>
+<li>chained<br /></li>
+
+</ul>
+</section>
+<section id="slide-orgf8a18d4">
+<h3 id="orgf8a18d4">CNI: configuration</h3>
+<ul>
+<li><p>
+<code>/etc/cni/net.d/10-weave.conflist</code><br />
+</p>
+<div class="org-src-container">
+
+<pre><code class="" json >{
+    "cniVersion": "0.3.1",
+    "name": "weave",
+    "plugins": [
+   {
+       "name": "weave",
+       "type": "weave-net",
+       "hairpinMode": true
+   },
+   {
+       "type": "portmap",
+       "capabilities": {
+	   "portMappings": true
+       },
+       "snat": true
+   }
+    ]
+}
+</code></pre>
+</div></li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-org57048f9">
+<h2 id="org57048f9">Weave</h2>
+<ul>
+<li><a href="https://www.weave.works/docs/net/latest/concepts/fastdp-how-it-works/">Fast Datapath</a><br /></li>
+<li><a href="https://www.weave.works/docs/net/latest/concepts/encryption/">Encryption</a><br /></li>
+<li><a href="http://kubernetes.io/docs/user-guide/networkpolicies/">NPC</a><br /></li>
+<li><a href="https://www.weave.works/docs/net/latest/tasks/manage/multi-cloud-multi-hop/">Multi-hop routing</a><br /></li>
+<li><a href="https://www.weave.works/docs/net/latest/kubernetes/">CNI plugin</a><br /></li>
+<li>Single <del>click</del> <code>kubectl</code> exec Kubernetes integration<br /></li>
+
+</ul>
+</section>
+<section id="slide-orgb7a8e0c">
+<h3 id="orgb7a8e0c">Weave: Node view</h3>
+
+<div class="figure">
+<p><img src="./weave-node.png" alt="weave-node.png" /><br />
+</p>
+</div>
+</section>
+<section id="slide-org247eb04">
+<h3 id="org247eb04">Weave: Topology</h3>
+
+<div class="figure">
+<p><img src="./weave-topology.png" alt="weave-topology.png" /><br />
+</p>
+</div>
+</section>
+<section id="slide-org789b093">
+<h3 id="org789b093">Weave: FDP</h3>
+
+<div class="figure">
+<p><img src="https://www.weave.works/docs/net/latest/concepts/weave-net-fdp1-1024x454.png" alt="weave-net-fdp1-1024x454.png" /><br />
+</p>
+</div>
+</section>
+<section id="slide-orgf4c3ab3">
+<h3 id="orgf4c3ab3">Weave: Multi-hop routing</h3>
+
+<div class="figure">
+<p><img src="./weave-multihop.png" alt="weave-multihop.png" /><br />
+</p>
+</div>
+</section>
+<section id="slide-orga09371c">
+<h3 id="orga09371c">Weave: installation</h3>
+<div class="org-src-container">
+
+<pre><code class="" shell-script >$ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=\
+$(kubectl version | base64 | tr -d '\n')"
+</code></pre>
+</div>
+</section>
+<section id="slide-orgdd1be24">
+<h3 id="orgdd1be24">Weave: be aware</h3>
+<p>
+Always remove <code>/etc/cni/net.d/10-weave.conf</code><br />
+</p>
+</section>
+</section>
+<section>
+<section id="slide-org7678ffe">
+<h2 id="org7678ffe">Tips and tricks</h2>
+
+<div class="figure">
+<p><img src="http://vodvore.net/prikols/prikol01727.jpg" alt="prikol01727.jpg" /><br />
+</p>
+</div>
+</section>
+<section id="slide-org686f031">
+<h3 id="org686f031">Networks</h3>
+<ul>
+<li>Host network<br /></li>
+<li>Pod network (CNI)<br /></li>
+<li>Service network (Netfilter)<br /></li>
+
+</ul>
+<p>
+Don&rsquo;t forget<br />
+</p>
+<div class="org-src-container">
+
+<pre><code class="" shell-script >ip route add service_network dev internal_interface
+</code></pre>
+</div>
+
+</section>
+<section id="slide-orgc14be2e">
+<h3 id="orgc14be2e">Encryption config</h3>
+<div class="org-src-container">
+
+<pre><code class="" yaml >kind: EncryptionConfig
+apiVersion: v1
+resources:
+- resources:
+  - secrets
+  - configmaps
+  providers:
+  - aescbc:
+      keys:
+	- name: key1
+	  secret: RnVjayB0aGlzIHNoaXQhCg==
+  - identity: {}
+</code></pre>
+</div>
+</section>
+<section id="slide-orgec42786">
+<h4 id="orgec42786">Encryption setup</h4>
+<div class="org-src-container">
+
+<pre><code class="" shell-script ># kube-apiserver --experimental-encryption-provider-config=/etc/kubernetes/encryption-config.yaml ...
+</code></pre>
+</div>
+</section>
+<section id="slide-org69e49ca">
+<h4 id="org69e49ca">Actually encrypting the data</h4>
+<div class="org-src-container">
+
+<pre><code class="" shell-script >$ kubectl get secrets --all-namespaces -o json | kubectl replace -f -
+</code></pre>
+</div>
+</section>
+<section id="slide-org3a70fb3">
+<h3 id="org3a70fb3">Endpoint reconciler</h3>
+<ul>
+<li><p>
+Good<br />
+</p>
+<div class="org-src-container">
+
+<pre><code class="" shell-script ># kube-apiserver --endpoint-reconciler-type=lease ...
+</code></pre>
+</div></li>
+<li><p>
+Bad<br />
+</p>
+<div class="org-src-container">
+
+<pre><code class="" shell-script ># kube-apiserver --endpoint-reconciler-type=master-count ...
+</code></pre>
+</div></li>
+
+</ul>
+
+</section>
+<section id="slide-org68faabc">
+<h3 id="org68faabc">Authentication</h3>
+<div class="outline-text-3" id="text-org68faabc">
+</div>
+</section>
+<section id="slide-org0e7e5c1">
+<h4 id="org0e7e5c1">Authentication: WARNING</h4>
+<p>
+There is no authentication inside kubernetes!<br />
+AT ALL!<br />
+</p>
+</section>
+<section id="slide-org64bdb71">
+<h4 id="org64bdb71">Authentication: strategies</h4>
+<ul>
+<li><a href="https://kubernetes.io/docs/admin/authentication/#x509-client-certs">X509 Client Certs</a><br /></li>
+<li><a href="https://kubernetes.io/docs/admin/authentication/#static-token-file">Static Token File</a><br /></li>
+<li><a href="https://kubernetes.io/docs/admin/authentication/#static-password-file">Static Password File</a><br /></li>
+<li><a href="https://kubernetes.io/docs/admin/authentication/#openid-connect-tokens">OpenID Connect Tokens</a><br /></li>
+<li><a href="https://kubernetes.io/docs/admin/authentication/#webhook-token-authentication">Webhook Token Authentication</a><br /></li>
+<li><a href="https://github.com/coreos/dex">DEX</a><br /></li>
+
+</ul>
+</section>
+<section id="slide-orgf3e4b12">
+<h4 id="orgf3e4b12">Bootstrap tokens</h4>
+<ul>
+<li><p>
+Apiserver:<br />
+</p>
+<div class="org-src-container">
+
+<pre><code class="" shell-script >--enable-bootstrap-token-auth
+</code></pre>
+</div></li>
+<li><p>
+Kubelet:<br />
+</p>
+<div class="org-src-container">
+
+<pre><code class="" shell-script >--bootstrap-kubeconfig=/etc/kubernetes/kubeconfig-bootstrap.yaml
+</code></pre>
+</div></li>
+
+</ul>
+</section>
+<section id="slide-orgaf51959">
+<h3 id="orgaf51959">Upgrade</h3>
+<ul>
+<li>Patch versions: smooth and simple<br /></li>
+<li>Minor versions: all pods restart<br /></li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-orge81cfa3">
+<h2 id="orge81cfa3">Questions?</h2>
+</section>
+</section>
+</div>
+</div>
+<script src="http://cdn.jsdelivr.net/reveal.js/3.0.0/lib/js/head.min.js"></script>
+<script src="http://cdn.jsdelivr.net/reveal.js/3.0.0/js/reveal.js"></script>
+
+<script>
+// Full list of configuration options available here:
+// https://github.com/hakimel/reveal.js#configuration
+Reveal.initialize({
+
+controls: true,
+progress: true,
+history: false,
+center: true,
+slideNumber: 'c',
+rollingLinks: false,
+keyboard: true,
+mouseWheel: false,
+
+overview: true,
+
+theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+transition: Reveal.getQueryHash().transition || 'page', // default/cube/page/concave/zoom/linear/fade/none
+transitionSpeed: 'default',
+multiplex: {
+    secret: '', // null if client
+    id: '', // id, obtained from socket.io server
+    url: '' // Location of socket.io server
+},
+
+// Optional libraries used to extend on reveal.js
+dependencies: [
+ { src: 'http://cdn.jsdelivr.net/reveal.js/3.0.0/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+ { src: 'http://cdn.jsdelivr.net/reveal.js/3.0.0/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } }]
+});
+</script>
+</body>
+</html>

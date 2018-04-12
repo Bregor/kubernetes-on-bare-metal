@@ -1,0 +1,24 @@
+[Master0|
+[Scheduler]->[Apiserver]
+[Controller Manager]->[Apiserver]
+[Addon Manager]->[Kubectl]
+[Kubectl]->[Apiserver]
+]
+
+[Master1|
+[Scheduler]->[Apiserver]
+[Controller Manager]->[Apiserver]
+[Addon Manager]->[Kubectl]
+[Kubectl]->[Apiserver]
+]
+
+[Master2|
+[Scheduler]->[Apiserver]
+[Controller Manager]->[Apiserver]
+[Addon Manager]->[Kubectl]
+[Kubectl]->[Apiserver]
+]
+[<database>Etcd]
+[Master0]->[Etcd]
+[Master1]->[Etcd]
+[Master2]->[Etcd]

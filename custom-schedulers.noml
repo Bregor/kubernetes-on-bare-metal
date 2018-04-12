@@ -1,0 +1,11 @@
+[Scheduler0|Name: default-scheduler]
+[Scheduler1|Name: default-scheduler]
+[Scheduler2|Name: custom-scheduler]
+
+[Scheduler0]->[Apiserver]
+[Scheduler1]->[Apiserver]
+[Scheduler2]->[Apiserver]
+
+[<database>Etcd]
+
+[Apiserver]->[Etcd]

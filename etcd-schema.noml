@@ -1,0 +1,7 @@
+[<database>Etcd0|peer port: 2379]
+[<database>Etcd1|peer port: 2379]
+[<database>Etcd2|peer port: 2379]
+#direction: right
+[Etcd0]<->[Etcd1]
+[Etcd0]<->[Etcd2]
+[Etcd1]<->[Etcd2]

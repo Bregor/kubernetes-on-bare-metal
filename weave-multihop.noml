@@ -1,0 +1,18 @@
+#direction: right
+[DC1|[weave-net-2jvtc]<->[weave-net-2p59x]
+[weave-net-2jvtc]<->[weave-net-4x4rn]
+[weave-net-2p59x]<->[weave-net-4x4rn]]
+
+[DC2|[weave-net-dnt6d]<->[weave-net-fztdh]
+[weave-net-dnt6d]<->[weave-net-h4fpl]
+[weave-net-fztdh]<->[weave-net-h4fpl]]
+
+[Bastion|[weave-net-z2vmr]
+[weave-net-z2vmr]]
+
+[Bastion]<->[DC1]
+[Bastion]<->[DC1]
+[Bastion]<->[DC1]
+[Bastion]<->[DC2]
+[Bastion]<->[DC2]
+[Bastion]<->[DC2]
